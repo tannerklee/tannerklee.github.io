@@ -4,36 +4,691 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Balance the US Budget — Interactive Simulator</title>
+
+  <!-- If your main CSS exists, this will reuse it (safe if missing too) -->
   <link rel="stylesheet" href="../assets/css/style.css">
+
   <style>
-    .controls h2{margin:0 0 12px; font-size:1.1rem}
-    .group{margin-bottom:14px; padding-bottom:12px; border-bottom:1px dashed rgba(255,255,255,0.08)}
-    .group:last-child{border-bottom:none}
-    .row{display:flex; align-items:center; gap:8px; margin:8px 0}
-    label{flex:1; color:var(--muted); font-size:0.93rem}
-    input[type="number"]{width:140px; padding:8px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:#0e1430; color:var(--ink)}
-    .inline{display:flex; gap:8px; align-items:center}
-    .kpi{display:grid; grid-template-columns: repeat(4,1fr); gap:12px; margin-top:8px}
-    .tile{padding:10px; border-radius:10px; background:#0f1738; border:1px solid rgba(255,255,255,0.08); text-align:center}
-    .tile .val{font-size:1.1rem; font-weight:700}
-    .legend{display:flex; gap:12px; align-items:center; flex-wrap:wrap; color:var(--muted); font-size:0.9rem; margin-top:8px}
-    .notice{font-size:0.85rem; color:var(--muted); margin-top:10px}
-    main{display:grid; gap:16px; grid-template-columns: 400px 1fr; padding:16px; max-width:1200px; margin:0 auto}
-    @media (max-width: 980px){ main{grid-template-columns: 1fr} }
-    canvas{min-height:260px;}
+    :root {
+      --bg: #050816;
+      --card: #0c1226;
+      --accent: #4f46e5;
+      --accent-soft: rgba(79, 70, 229, 0.15);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --danger: #f97373;
+      --radius-lg: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: radial-gradient(circle at top, #111827, #020617 55%, #000 100%);
+      color: var(--text-main);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(14px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: linear-gradient(
+        to bottom,
+        rgba(15, 23, 42, 0.9),
+        rgba(15, 23, 42, 0.75),
+        transparent
+      );
+    }
+
+    .nav-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-pill {
+      width: 22px;
+      height: 22px;
+      border-radius: 12px;
+      background: radial-gradient(circle at 30% 20%, #fff, #4f46e5 55%, #111827);
+      box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.45),
+        0 10px 25px rgba(15, 23, 42, 0.9);
+    }
+
+    nav {
+      display: flex;
+      gap: 14px;
+      font-size: 0.9rem;
+    }
+
+    nav a {
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: var(--text-muted);
+    }
+
+    nav a:hover {
+      background: rgba(31, 41, 55, 0.85);
+      color: var(--text-main);
+    }
+
+    nav a.active {
+      background: var(--accent-soft);
+      color: #e5e7eb;
+      border: 1px solid rgba(129, 140, 248, 0.7);
+    }
+
+    main {
+      flex: 1;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 18px 16px 32px;
+    }
+
+    .headline {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.11em;
+      color: #a5b4fc;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.7rem, 3vw, 2.1rem);
+      line-height: 1.2;
+    }
+
+    .subtext {
+      max-width: 640px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: flex-start;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, #111827, #020617 80%);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      padding: 16px 16px 14px;
+      box-shadow: 0 26px 40px rgba(15, 23, 42, 0.9);
+    }
+
+    .controls-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .controls-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .pill {
+      font-size: 0.75rem;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      color: var(--text-muted);
+    }
+
+    .field-group {
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.3);
+    }
+
+    .field-group:last-child {
+      border-bottom: none;
+    }
+
+    .field-group h3 {
+      margin: 0 0 6px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #a5b4fc;
+    }
+
+    .field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 5px 0;
+    }
+
+    .field label {
+      flex: 1;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .field input[type="number"] {
+      width: 120px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: #020617;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      text-align: right;
+    }
+
+    .small-note {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .btn {
+      border: none;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(to right, #4f46e5, #22c55e);
+      color: white;
+      box-shadow: 0 10px 25px rgba(34, 197, 94, 0.35);
+    }
+
+    .btn-secondary {
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-muted);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+    }
+
+    .viz-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 280px;
+    }
+
+    @media (max-width: 600px) {
+      .chart-wrap {
+        height: 230px;
+      }
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 900px) {
+      .kpi-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .kpi-tile {
+      border-radius: 12px;
+      padding: 7px 8px;
+      background: radial-gradient(circle at top left, #111827, #020617);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    .kpi-label {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-bottom: 2px;
+    }
+
+    .kpi-value {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .badge-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+      margin-right: 5px;
+    }
+
+    .dot-debt {
+      background: #38bdf8;
+    }
+
+    .dot-ratio {
+      background: #22c55e;
+    }
+
+    footer {
+      padding: 12px 16px 20px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
   </style>
 </head>
+
 <body>
-  <header class="header">
-    <div class="container inner">
-      <div class="brand">Tanner Lee</div>
-      <nav class="nav">
-        <a href="../index.html">Home</a>
-        <a href="../about.html">About</a>
-        <a href="../tools/balance.html">Balance the US Budget</a>
-        <a href="../contact.html">Contact</a>
-      </nav>
-    </div>
+  <div class="page">
+    <header>
+      <div class="nav-inner">
+        <div class="brand">
+          <div class="brand-pill"></div>
+          <span>Tax Made Simple Lab</span>
+        </div>
+        <nav>
+          <a href="../index.html">Home</a>
+          <a href="../about.html">About</a>
+          <a href="../tools/balance.html" class="active">Balance the Budget</a>
+          <a href="../contact.html">Contact</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="headline">
+        <div class="eyebrow">Interactive tool</div>
+        <h1>Balance the US budget — see how your assumptions change the future.</h1>
+        <p class="subtext">
+          Adjust growth, inflation, interest costs, and fiscal choices to explore
+          “what if” scenarios for US federal debt. This is a <strong>simplified, educational model</strong> — not a prediction or policy recommendation.
+        </p>
+      </section>
+
+      <section class="layout">
+        <!-- LEFT: CONTROLS -->
+        <div class="card">
+          <div class="controls-header">
+            <div class="controls-title">Model inputs</div>
+            <div class="pill">Nominal values · trillions of dollars</div>
+          </div>
+
+          <div class="field-group">
+            <h3>Starting point</h3>
+            <div class="field">
+              <label for="startYear">Start year</label>
+              <input type="number" id="startYear" value="2025" min="1900" max="2300">
+            </div>
+            <div class="field">
+              <label for="startDebt">Debt at start (trillion $)</label>
+              <input type="number" id="startDebt" value="38" step="0.1" min="0">
+            </div>
+            <div class="field">
+              <label for="startGDP">GDP at start (trillion $)</label>
+              <input type="number" id="startGDP" value="28" step="0.1" min="0">
+            </div>
+            <div class="field">
+              <label for="maxYears">Years to simulate</label>
+              <input type="number" id="maxYears" value="120" min="10" max="300">
+            </div>
+            <div class="small-note">
+              Values are nominal. We’re looking at overall shape and direction, not precise forecasts.
+            </div>
+          </div>
+
+          <div class="field-group">
+            <h3>Macro assumptions</h3>
+            <div class="field">
+              <label for="realGrowth">Real GDP growth (% per year)</label>
+              <input type="number" id="realGrowth" value="1.8" step="0.1">
+            </div>
+            <div class="field">
+              <label for="inflation">Inflation (% per year)</label>
+              <input type="number" id="inflation" value="2.3" step="0.1">
+            </div>
+            <div class="field">
+              <label for="interestRate">Average interest rate on debt (% per year)</label>
+              <input type="number" id="interestRate" value="3.5" step="0.1">
+            </div>
+            <div class="small-note">
+              Nominal GDP growth is roughly real growth + inflation (plus a small interaction term).
+            </div>
+          </div>
+
+          <div class="field-group">
+            <h3>Fiscal stance</h3>
+            <div class="field">
+              <label for="primaryBalance">Baseline primary balance (% of GDP)</label>
+              <input type="number" id="primaryBalance" value="-3.0" step="0.1">
+            </div>
+            <div class="field">
+              <label for="revChange">Policy: revenue change (percentage points of GDP)</label>
+              <input type="number" id="revChange" value="0.0" step="0.1">
+            </div>
+            <div class="field">
+              <label for="spendChange">Policy: spending change (percentage points of GDP)</label>
+              <input type="number" id="spendChange" value="0.0" step="0.1">
+            </div>
+            <div class="small-note">
+              Positive numbers improve the primary balance; negative numbers worsen it. Example: +1.0 revenue = taxes up 1% of GDP.
+            </div>
+          </div>
+
+          <div>
+            <div class="buttons">
+              <button id="runBtn" class="btn btn-primary">
+                ▶ Run simulation
+              </button>
+              <button id="resetBtn" class="btn btn-secondary">
+                ⟳ Reset to defaults
+              </button>
+            </div>
+            <div class="small-note" style="margin-top:6px;">
+              Model: Debt<sub>t+1</sub> = Debt<sub>t</sub> + Interest<sub>t</sub> − (PrimarySurplus% × GDP<sub>t</sub>).<br />
+              If debt ever drops below zero, we stop and record the year.
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: CHART & KPIs -->
+        <div class="card viz-card">
+          <div class="chart-wrap">
+            <canvas id="chart"></canvas>
+          </div>
+
+          <div class="kpi-row">
+            <div class="kpi-tile">
+              <div class="kpi-label">Year debt reaches $0</div>
+              <div class="kpi-value" id="kpiYear">Not reached</div>
+            </div>
+            <div class="kpi-tile">
+              <div class="kpi-label">Years until zero</div>
+              <div class="kpi-value" id="kpiYears">—</div>
+            </div>
+            <div class="kpi-tile">
+              <div class="kpi-label">Debt/GDP in year 10</div>
+              <div class="kpi-value" id="kpiRatio10">—</div>
+            </div>
+            <div class="kpi-tile">
+              <div class="kpi-label">Debt in year 10 (T$)</div>
+              <div class="kpi-value" id="kpiDebt10">—</div>
+            </div>
+          </div>
+
+          <div class="legend">
+            <span><span class="badge-dot dot-debt"></span>Debt (trillions of dollars)</span>
+            <span><span class="badge-dot dot-ratio"></span>Debt-to-GDP ratio (%)</span>
+            <span>Use this as a sandbox to build intuition about how sensitive debt is to growth, interest, and fiscal choices.</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Built by Tanner Lee as a learning tool. This is a simplified model and does not represent official projections or advice.
+    </footer>
+  </div>
+
+  <!-- Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function simulate(params) {
+      const {
+        startYear,
+        startDebtT,
+        startGDPT,
+        maxYears,
+        realGrowthPct,
+        inflationPct,
+        interestPct,
+        primaryBalancePct,
+        revChangePctPts,
+        spendChangePctPts
+      } = params;
+
+      const years = [];
+      const debtT = [];
+      const gdpT = [];
+      const ratio = [];
+
+      const real = realGrowthPct / 100;
+      const infl = inflationPct / 100;
+      const r = interestPct / 100;
+      const gNominal = (1 + real) * (1 + infl) - 1;
+
+      // Baseline primary balance (surplus positive, deficit negative)
+      const baseline = primaryBalancePct / 100;
+      // Policy adjustments
+      const primarySurplusPct = baseline + (revChangePctPts / 100) - (spendChangePctPts / 100);
+
+      let debt = startDebtT;
+      let gdp = startGDPT;
+      let zeroYear = null;
+
+      for (let t = 0; t <= maxYears; t++) {
+        const year = startYear + t;
+        years.push(year);
+        debtT.push(debt);
+        gdpT.push(gdp);
+        ratio.push(gdp > 0 ? (debt / gdp) * 100 : NaN);
+
+        if (debt <= 0 && zeroYear === null) {
+          zeroYear = year;
+          break;
+        }
+
+        const interest = r * debt;
+        const primarySurplusAmount = primarySurplusPct * gdp;
+
+        const nextDebt = debt + interest - primarySurplusAmount;
+        const nextGDP = gdp * (1 + gNominal);
+
+        debt = nextDebt;
+        gdp = nextGDP;
+
+        if (!isFinite(debt) || !isFinite(gdp)) break;
+        if (debt > 1e6 || gdp > 1e6) break;
+      }
+
+      return { years, debtT, gdpT, ratio, zeroYear };
+    }
+
+    function fmt(n, digits = 1) {
+      if (n === null || n === undefined || isNaN(n)) return "—";
+      return Number(n).toLocaleString(undefined, {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      });
+    }
+
+    let chart;
+
+    function updateChart(data) {
+      const ctx = $("chart");
+
+      const cfg = {
+        type: "line",
+        data: {
+          labels: data.years,
+          datasets: [
+            {
+              label: "Debt (Trillion $)",
+              data: data.debtT,
+              yAxisID: "y",
+              tension: 0.25
+            },
+            {
+              label: "Debt-to-GDP (%)",
+              data: data.ratio,
+              yAxisID: "y1",
+              tension: 0.25
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                color: "#e5e7eb",
+                usePointStyle: true
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: "#9ca3af" },
+              grid: { color: "rgba(55,65,81,0.4)" }
+            },
+            y: {
+              type: "linear",
+              position: "left",
+              title: { display: true, text: "Debt (T$)" },
+              ticks: { color: "#9ca3af" },
+              grid: { color: "rgba(55,65,81,0.4)" }
+            },
+            y1: {
+              type: "linear",
+              position: "right",
+              title: { display: true, text: "Debt/GDP (%)" },
+              ticks: { color: "#9ca3af" },
+              grid: { drawOnChartArea: false }
+            }
+          }
+        }
+      };
+
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, cfg);
+
+      const k10 = Math.min(10, data.debtT.length - 1);
+
+      $("kpiYear").textContent = data.zeroYear ? data.zeroYear : "Not reached";
+      $("kpiYears").textContent = data.zeroYear
+        ? data.zeroYear - Number($("startYear").value)
+        : "—";
+      $("kpiRatio10").textContent = data.ratio[k10]
+        ? fmt(data.ratio[k10], 1) + "%"
+        : "—";
+      $("kpiDebt10").textContent = data.debtT[k10]
+        ? fmt(data.debtT[k10], 1)
+        : "—";
+    }
+
+    function readParams() {
+      return {
+        startYear: Number($("startYear").value),
+        startDebtT: Number($("startDebt").value),
+        startGDPT: Number($("startGDP").value),
+        maxYears: Number($("maxYears").value),
+        realGrowthPct: Number($("realGrowth").value),
+        inflationPct: Number($("inflation").value),
+        interestPct: Number($("interestRate").value),
+        primaryBalancePct: Number($("primaryBalance").value),
+        revChangePctPts: Number($("revChange").value),
+        spendChangePctPts: Number($("spendChange").value)
+      };
+    }
+
+    function run() {
+      const params = readParams();
+      const data = simulate(params);
+      updateChart(data);
+    }
+
+    $("runBtn").addEventListener("click", run);
+
+    $("resetBtn").addEventListener("click", () => {
+      $("startYear").value = 2025;
+      $("startDebt").value = 38;
+      $("startGDP").value = 28;
+      $("maxYears").value = 120;
+      $("realGrowth").value = 1.8;
+      $("inflation").value = 2.3;
+      $("interestRate").value = 3.5;
+      $("primaryBalance").value = -3.0;
+      $("revChange").value = 0.0;
+      $("spendChange").value = 0.0;
+      run();
+    });
+
+    // Run once on load
+    run();
+  </script>
+</body>
+</html>
   </header>
 
   <div class="container">
